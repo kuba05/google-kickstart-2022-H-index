@@ -1,5 +1,7 @@
 from math import log2, ceil 
 
+from heapq import heappush, heappop, heappushpop
+
 from time import time_ns, sleep
 import sys
 import unittest
@@ -33,6 +35,9 @@ class Solve():
         
         global timeHalving, timeAdding, timeCalculatingHIndex
         time_0 = time_ns()
+        #if item <= self.array[self.lastHIndex]:
+        #    return self.lastHIndex
+            
         ## binary search with normalization
         i = 0
         if self.size >= 2:
@@ -106,6 +111,8 @@ class TestMain(unittest.TestCase):
                 []
             ]
         ]
+        print(self.dataSetTest(datasets[1][0]))
+        print(datasets[1][1])
         for data, output in datasets:
             self.assertEqual(self.dataSetTest(data), output)
             

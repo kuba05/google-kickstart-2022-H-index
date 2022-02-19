@@ -1,91 +1,78 @@
-from math import log2, ceil 
+from heapq import heappush, heappushpop
 
-from time import time_ns, sleep
+from time import time_ns
 import sys
 import unittest
 import random
 
-timeHalving = timeAdding = timeCalculatingHIndex = 0
+
+"""
+see the assignment details: https://codingcompetitions.withgoogle.com/kickstart/round/00000000008f4332/0000000000941e56
+"""
+
 
 class Solve():
     def __init__(self, N):
-        self.array = [0] * N
-        self.size = 0
+        self.heap = []
         self.lastHIndex = 0
+    
     
     @staticmethod    
     def solve(N, Cx):
+        """
+        static method used for solving tasks
+        """
         solver = Solve(N)
         output = [0] * N
         
         for i, study in enumerate(Cx):
             output[i] = solver._add_and_process(study)
-            # if any(array[j-1] > array[j] for j in range(1, i + 1)):
-            #    sys.exit(1)
-            
+        
         return output
     
     
     def _add_and_process(self, item):
         """
-        index is the first index that is not used yet (all non-used elements shall be 0)
+            add new paper and recalculate h-index after adding it
         """
+        # if a paper has 0 or less citations it can never influence H-index in any way
+        if item <= 0:
+            return self.lastHIndex
         
-        global timeHalving, timeAdding, timeCalculatingHIndex
-        time_0 = time_ns()
-        ## binary search with normalization
-        i = 0
-        if self.size >= 2:
-            i = 2**(ceil(log2(self.size))-1) - 1
-            step = (i+1) // 2
-            if self.array[i] > item:
-                i = self.size - 1 - i
-            else:
-                i -= step
-                step //= 2
-            while step >= 1:
-                if self.array[i] == item:
-                    break
-                if self.array[i] > item:
-                    i += step
-                else:
-                    i -= step
-                step //= 2
+        #if there are no previous papers, this one will for sure raise the H-index
+        if len(self.heap) == 0:
+            self.heap.append(item)
+            self.lastHIndex += 1
+            return self.lastHIndex
         
-        time_1 = time_ns()
+        #HIndex can change only either: increase by 1; or not change at all (with each paper added)
         
-        if self.size > 0 and self.array[i] > item:
-            i += 1
-            # insert            
-        for j in range(self.size, i, -1):
-            self.array[j] = self.array[j - 1]
-        self.array[i] = item
-        self.size += 1
+        # if the new paper has less citations than h-index would be after we raise it, there is no way
+        #this paper raises the h-index
+        if item <= self.lastHIndex:
+            return self.lastHIndex
         
-        time_2 = time_ns()
-        # compute HIndex
+        #if the paper with least citations (which still has more or equal citations than last h-index was)
+        #has enough citations for the h-index to raise, we can raise the h-index 
+        if self.heap[0] >= self.lastHIndex + 1:
+            heappush(self.heap, item)
+            self.lastHIndex += 1
+            return self.lastHIndex
         
-        #if i is too big, it couldn't have influenced HIndex in any way
-        if i <= self.lastHIndex:
-            #the change of HIndex can be at most by 1, so it is sufficient to check the first element after the already checked sequence 
-            if self.array[self.lastHIndex] > self.lastHIndex:
-                self.lastHIndex += 1
+        #else the lowest element in heap shall be removed, since it can no longer contribute to raising h-index
+        heappushpop(self.heap, item)
         
-        
-        time_3 = time_ns()
-        
-        timeHalving += time_1 - time_0
-        
-        timeAdding += time_2 - time_1
-        
-        timeCalculatingHIndex += time_3 - time_2
         return self.lastHIndex
         
     
-def main():    
+def main():
+    #there will be K independent tasks
     for i in range(int(input())):
+        #for each we need to first parse the input
         N = int(input())
         Cx = [int(x) for x in input().split()]
+        
+        #make sure the input makes sense
         assert(N == len(Cx))
     
         print(f"Case #{i+1}:", *Solve.solve(N, Cx))
@@ -96,16 +83,24 @@ def main():
 class TestMain(unittest.TestCase):
     
     def test_allSets(self):
+        
+        """
+        datasets are in format:
+        [input, expectedOutput]
+        
+        where both input and expectedOutput are arrays of numbers of the same length
+        """
         datasets = [
             [
                 [5, 2, 1, 3],
                 [1, 2, 2, 2]
             ],
             [
-                [random.randint(1,10**5) for i in range(10**4)],
-                []
+                [1, 3, 3, 2, 2, 15],
+                [1, 1, 2, 2, 2, 3]
             ]
         ]
+
         for data, output in datasets:
             self.assertEqual(self.dataSetTest(data), output)
             
@@ -113,18 +108,6 @@ class TestMain(unittest.TestCase):
     def dataSetTest(self, data):
         return Solve.solve(len(data), data)
         
-    @classmethod
-    def tearDownClass(cls):
-        print(f"timeAdding: {timeAdding}", file=sys.stderr)
-        print(f"timeHalving: {timeHalving}", file=sys.stderr)
-        print(f"timeCalculatingHIndex: {timeCalculatingHIndex}", file=sys.stderr)
-        
 
 if __name__ == "__main__":
     main()
-  
-  
-"""
-data = [5,2,1,3]
-output = [1, 2, 2, 2]
-"""
